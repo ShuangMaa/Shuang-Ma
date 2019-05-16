@@ -1,0 +1,114 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Feb 22 16:05:12 2018
+
+@author: Administrator
+"""
+
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jun 13 16:56:59 2017
+
+@author: yqx
+"""
+
+import requests
+from lxml import etree
+import random,json
+import pandas as pd
+
+linklist=[]
+listip=[]
+list_name=[]
+list_jwd=[]
+list_price=[]
+list_address=[]
+list_lvhua=[]
+#获取各个小区链接
+def get_data(url):
+    res=requests.get(url=url)    
+    doc_tree=etree.HTML(res.text)
+    link=doc_tree.xpath("//*[@id='list-content']/div[2]/div[1]/h3/a/@href")
+    return link
+
+for i in range(1,30):
+    url='https://zhengzhou.anjuke.com/community/p{}'.format(i)
+    linklist.extend(get_data(url))
+    print("已下载第"+str(i)+"页的链接")
+    
+print(linklist)
+data={ 'link':linklist}
+df= pd.DataFrame(data,columns=['link'])
+fw=list(df['link'])
+#cmd中开启IPProxy.py
+#选取可用ip
+'''url='http://127.0.0.1:8000/?count=60&types=0'  
+for i in range(30):
+    k=json.loads(requests.get(url).text)  
+    proxy={"http":"http://"+str(k[i][0])+':'+str(k[i][1])}
+    try:
+        res=requests.get(url='http://www.baidu.com',proxies=proxy,timeout=0.5)
+        if res.status_code==200:
+            print(proxy)
+            print('成功')
+            listip.append(proxy)
+        else:
+            print(proxy)
+            print('失败')
+    except requests.RequestException as e:
+        #print(e)
+        print(proxy)
+        print('失败')
+        continue
+print("可用ip有{}个".format(len(listip)))'''
+headers={
+         "User-Agent":"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36"
+         
+         }
+#获取小区数据
+i=0
+while i<20:
+    proxy=random.choice(listip) 
+    print(fw[i])
+    try:
+        res=requests.get(url=fw[i],proxies=proxy,headers=headers,timeout=2)
+        if res.status_code==200:
+            doc_tree=etree.HTML(res.text)
+            #获取小区地理信息
+            
+            jwd=doc_tree.xpath("/html/body/script[2]/text()")
+            print(jwd)
+            name=doc_tree.xpath("/html/body/script[11]/text()")
+            #name=doc_tree.xpath("/html/body/div[4]/div[3]/div[2]/div[1]/div[1]/div/h1/strong/text()")
+            #name=doc_tree.xpath("/html/body/div[2]/div[2]/div[4]/div[3]/div[1]/div/a/h1/text()")
+            print(name)
+            price=doc_tree.xpath("/html/body/div[4]/div[3]/div[2]/div[1]/div[2]/div[1]/span/text()")
+            print(price)
+            #address=doc_tree.xpath("//div[@class='box-left-bottom clickTargetBox']/div[@class='bottom-info']/p[@class='where manager']/span/@title")
+            address=doc_tree.xpath("//*[@id='xfptxq_B04_12']/span/text()")
+            print(address)
+            #lvhualv=doc_tree.xpath("//div[@class='box-loupan']/ul[@class='table-list clear']/li[6]/p[@class='desc-p clear']/span[@class='label-val']/text()")
+            #print(lvhualv)
+            if name==[]:
+                print(res.text)
+                continue
+            else:
+                list_jwd.append(jwd[0])
+                list_name.append(name[0])
+                if price==[]:
+                    list_price.append('价格待定')
+                else:
+                    list_price.append(price[0])
+                list_address.append(address[0])
+                #list_lvhua.append(lvhualv[0])
+                i=i+1
+   
+    except requests.RequestException as e:
+        print(proxy)
+        print('继续请求该小区链接')
+        continue
+
+data={'name':list_name,'jwd':list_jwd,'price':list_price,'address':list_address}
+df = pd.DataFrame(data,columns=['name','jwd','price','address'])
+df.to_excel(r'G:\F\baidudirection\soufangxinfang.xls')
+print("-------------done--------------")
