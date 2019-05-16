@@ -1,0 +1,20 @@
+setwd("/Users/Desktop/")
+library(dplyr)
+library(corrplot)
+library(RColorBrewer)
+qingdao <- read.csv('zxs.csv')
+head(qingdao)
+
+png("街道品质.png", width = 1000,height = 1000)
+par(oma=c(0,0,2,0))
+qingdao_corr <- round(cor(qingdao, use = 'pairwise.complete.obs', method = 'pearson'),2)
+qingdao_corr
+corrplot(qingdao_corr, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, diag = FALSE,#tl.srt表示字体的倾斜程度
+         #title = 'Correlogram for Street Level Variables',
+         col=brewer.pal(n=10, name="RdBu"), #这里的n是右边的分割数
+         addCoef.col = 'black'
+         , tl.cex = 1.5#这里是字体大小
+         , mar = c(0,5,3,0)
+         )
+dev.off()
